@@ -1,5 +1,10 @@
 {
-  "stocks": [],
+  "stocks": [
+    {
+      "query": "US0231351067",
+      "name": "Amazon"
+    }
+  ],
   "alerts": [],
   "settings": {
     "stake": 150,
