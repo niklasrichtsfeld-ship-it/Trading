@@ -43,6 +43,10 @@
     {
       "query": "CH0012255144",
       "name": "Swatch Group"
+    },
+    {
+      "query": "US9311421039",
+      "name": "Walmart"
     }
   ],
   "alerts": [],
