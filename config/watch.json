@@ -25,20 +25,20 @@
       "name": "Richemont"
     },
     {
-      "query": "DE0007164600",
+      "query": "AT0000937503",
+      "name": "Voestalpin"
+    },
+    {
+      "symbol": "SAP.DE",
       "name": "SAP"
     },
     {
-      "query": "IE00BYTBXV33",
+      "symbol": "RY4C.F",
       "name": "Ryanair Holdings"
     },
     {
-      "query": "DE0007236101",
+      "symbol": "SIE.DE",
       "name": "Siemens"
-    },
-    {
-      "query": "AT0000937503",
-      "name": "Voestalpin"
     }
   ],
   "alerts": [],
