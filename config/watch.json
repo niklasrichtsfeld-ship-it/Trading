@@ -7,6 +7,10 @@
     {
       "query": "AT0000652011",
       "name": "Erste Group Bank"
+    },
+    {
+      "query": "US5801351017",
+      "name": "McDonald's"
     }
   ],
   "alerts": [],
