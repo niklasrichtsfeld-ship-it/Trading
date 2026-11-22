@@ -31,6 +31,10 @@
     {
       "query": "IE00BYTBXV33",
       "name": "Ryanair Holdings"
+    },
+    {
+      "query": "DE0007236101",
+      "name": "Siemens"
     }
   ],
   "alerts": [],
