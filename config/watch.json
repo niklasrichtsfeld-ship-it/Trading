@@ -27,6 +27,10 @@
     {
       "query": "DE0007164600",
       "name": "SAP"
+    },
+    {
+      "query": "IE00BYTBXV33",
+      "name": "Ryanair Houldings"
     }
   ],
   "alerts": [],
