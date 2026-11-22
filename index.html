@@ -274,15 +274,16 @@ details.card summary { font-family: var(--font-display); font-weight: 600; }
         <div class="full row-btns"><button class="btn primary" type="submit">Speichern und übertragen</button><button class="btn small danger" type="button" id="btnGhRemove">Schlüssel entfernen</button></div>
       </form>
       <p class="hint" id="syncState"></p>
-      <details class="expl"><summary>So bekommst du den Schlüssel</summary>
+      <details class="expl" open><summary>So bekommst du den Schlüssel (2 Minuten)</summary>
         <ol class="rules-list">
-          <li>Am Handy oder PC github.com öffnen, rechts oben Profilbild → Settings → ganz unten Developer settings → Personal access tokens → Fine-grained tokens → Generate new token.</li>
-          <li>Name: „Swing-Depot“. Ablauf: 1 Jahr (oder „No expiration“).</li>
-          <li>Repository access: „Only select repositories“ → swing-depot.</li>
-          <li>Permissions → Repository permissions → Contents: „Read and write“.</li>
-          <li>„Generate token“ tippen, den Schlüssel (beginnt mit github_pat_) kopieren und oben einfügen.</li>
+          <li>Tippe hier: <a href="https://github.com/settings/personal-access-tokens/new?name=Swing-Depot&amp;description=Beobachtungsliste%20aus%20der%20App&amp;expires_in=365&amp;contents=write" target="_blank" rel="noopener">Schlüssel bei GitHub anlegen</a>. Falls GitHub fragt: mit deinem Konto anmelden.</li>
+          <li>Name ist schon ausgefüllt. Etwas weiter unten bei <b>Repository access</b>: „Only select repositories“ antippen und <b>Trading</b> auswählen.</li>
+          <li>Darunter bei <b>Permissions</b> prüfen: „Contents“ steht auf „Read and write“. Falls nicht: „Add permissions“ → Contents → „Read and write“.</li>
+          <li>Ganz unten auf den grünen Knopf <b>Generate token</b> tippen und bestätigen.</li>
+          <li>Der Schlüssel beginnt mit <span class="mono">github_pat_</span>. Kopieren-Symbol daneben antippen.</li>
+          <li>Zurück in diese App, Schlüssel oben ins Feld „Zugangsschlüssel“ einfügen, „Speichern und übertragen“ tippen. Fertig, wenn darunter „Verbunden“ steht.</li>
         </ol>
-        <p class="hint">Der Schlüssel bleibt nur auf diesem Handy gespeichert.</p>
+        <p class="hint">GitHub-Name und Repository sind schon richtig eingetragen. Der Schlüssel bleibt nur auf diesem Handy gespeichert.</p>
       </details>
     </div>
     <div class="card">
