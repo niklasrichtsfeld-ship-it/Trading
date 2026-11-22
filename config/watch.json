@@ -11,6 +11,10 @@
     {
       "query": "US5801351017",
       "name": "McDonald's"
+    },
+    {
+      "query": "US67066G1040",
+      "name": "Invidia"
     }
   ],
   "alerts": [],
