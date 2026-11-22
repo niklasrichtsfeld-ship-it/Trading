@@ -39,6 +39,10 @@
     {
       "symbol": "SIE.DE",
       "name": "Siemens"
+    },
+    {
+      "query": "CH0012255144",
+      "name": "Swatch Group"
     }
   ],
   "alerts": [],
