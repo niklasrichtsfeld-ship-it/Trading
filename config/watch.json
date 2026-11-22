@@ -47,6 +47,10 @@
     {
       "query": "US9311421039",
       "name": "Walmart"
+    },
+    {
+      "query": "AT0000746409",
+      "name": "Verbund"
     }
   ],
   "alerts": [],
