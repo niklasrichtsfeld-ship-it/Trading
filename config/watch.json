@@ -58,7 +58,7 @@
     "stake": 150,
     "maxLoss": 5,
     "fee": 1,
-    "minCrv": 1.5,
+    "minCrv": 1.2,
     "fractional": true,
     "ruleset": "A",
     "timingMin": 2,
