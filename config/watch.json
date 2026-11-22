@@ -35,6 +35,10 @@
     {
       "query": "DE0007236101",
       "name": "Siemens"
+    },
+    {
+      "query": "AT0000937503",
+      "name": "Voestalpin"
     }
   ],
   "alerts": [],
