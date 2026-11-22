@@ -27,6 +27,10 @@
     {
       "query": "Ryanair Houlding",
       "name": "Ryanair Houlding"
+    },
+    {
+      "query": "DE0007164600",
+      "name": "SAP"
     }
   ],
   "alerts": [],
