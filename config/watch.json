@@ -3,6 +3,10 @@
     {
       "query": "US0231351067",
       "name": "Amazon"
+    },
+    {
+      "query": "AT0000652011",
+      "name": "Erste Group Bank"
     }
   ],
   "alerts": [],
