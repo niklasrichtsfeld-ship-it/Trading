@@ -15,6 +15,10 @@
     {
       "query": "US67066G1040",
       "name": "Invidia"
+    },
+    {
+      "query": "AT0000606306",
+      "name": "Reiffeisen Bank International"
     }
   ],
   "alerts": [],
