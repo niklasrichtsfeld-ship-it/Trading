@@ -23,12 +23,13 @@
   ],
   "alerts": [],
   "settings": {
-    "stake": 50,
+    "stake": 80,
     "maxLoss": 5,
     "fee": 1,
     "minCrv": 1.5,
     "fractional": true,
     "ruleset": "A",
-    "timingMin": 3
+    "timingMin": 3,
+    "marketFilter": true
   }
 }
