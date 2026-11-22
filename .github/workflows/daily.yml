@@ -1,0 +1,33 @@
+name: Tageslauf
+on:
+  schedule:
+    - cron: '10 17 * * 1-5'   # 18:10 Uhr Winterzeit, 19:10 Uhr Sommerzeit (Wien)
+  workflow_dispatch: {}
+  push:
+    paths: ['config/watch.json']
+permissions:
+  contents: write
+concurrency:
+  group: tageslauf
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Kurse holen und Regeln rechnen
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          APP_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: node scripts/daily.js
+      - name: Ergebnis speichern
+        run: |
+          git config user.name "swing-depot-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "Kurse $(date -u +%Y-%m-%d)"
+          git pull --rebase
+          git push
