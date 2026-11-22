@@ -1,27 +1,27 @@
 {
   "stocks": [
     {
-      "query": "US0231351067",
+      "symbol": "AMZN",
       "name": "Amazon"
     },
     {
-      "query": "AT0000652011",
+      "symbol": "EBO.DE",
       "name": "Erste Group Bank"
     },
     {
-      "query": "US5801351017",
+      "symbol": "MCD",
       "name": "McDonald's"
     },
     {
-      "query": "US67066G1040",
+      "symbol": "NVDA",
       "name": "Invidia"
     },
     {
-      "query": "AT0000606306",
+      "symbol": "RBI.VI",
       "name": "Reiffeisen Bank International"
     },
     {
-      "query": "CH0210483332",
+      "symbol": "CFR.SW",
       "name": "Richemont"
     }
   ],
