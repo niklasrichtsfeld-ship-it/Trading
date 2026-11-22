@@ -1,10 +1,5 @@
 {
-  "stocks": [
-    {
-      "symbol": "SAP.DE",
-      "name": "SAP"
-    }
-  ],
+  "stocks": [],
   "alerts": [],
   "settings": {
     "stake": 150,
