@@ -59,6 +59,7 @@ RULESETS.A = {
     'Kaufkurs: knapp über dem heutigen Tageshoch. Gekauft wird erst, wenn der Kurs dort ankommt.',
     'Notbremse (Stop-Loss): unter dem tiefsten Kurs der letzten 10 Tage, mindestens zwei übliche Tagesschwankungen entfernt.',
     'Ziel: das Hoch der letzten 60 Tage, mindestens doppelt so weit weg wie die Notbremse.',
+    'Marktfilter: Fällt der Gesamtmarkt (DAX unter seinem 200-Tage-Durchschnitt), gibt die Regel keine Kaufsignale. Abschaltbar unter Einstellungen.',
     'Gebühren-Check: Der mögliche Gewinn nach Gebühren muss mindestens so viel größer sein wie eingestellt, sonst nur „abwarten“.',
   ],
   evaluate(H, S) {
@@ -81,8 +82,7 @@ RULESETS.A = {
       { label: 'Kürzlich auf den Durchschnitt zurückgefallen', ok: touched, value: `20-Tage-Durchschnitt ${fmt(s20)}`, term: 'gd' },
       { label: 'Weder überhitzt noch im freien Fall', ok: rsiOk, value: `Schwung-Wert ${R.toFixed(0)} (gut: 40 bis 55)`, term: 'rsi' },
       { label: 'Heute wieder gestiegen', ok: upDay, value: `${fmt(pc)} → ${fmt(c)}` },
-      { label: 'Keine Quartalszahlen in den nächsten Tagen', ok: null, value: 'noch nicht geprüft' },
-      { label: 'Gesamtmarkt (DAX) im Aufwärtstrend', ok: null, value: 'noch nicht geprüft' },
+      { label: 'Gesamtmarkt (DAX) steigt', ok: S.marketFilter === false ? null : (S.marketUp ?? null), term: 'markt', value: S.marketFilter === false ? 'Marktfilter ist ausgeschaltet' : S.marketUp == null ? 'keine DAX-Kurse' : S.marketUp ? 'DAX über seinem 200-Tage-Durchschnitt' : 'DAX unter seinem 200-Tage-Durchschnitt' },
     ];
     base.checks = checks;
     if (!trend) return { ...base, signal: 'nicht', reason: c <= s200 ? 'Die Aktie fällt langfristig. Die Regel kauft nur Aktien, die steigen.' : 'Der langfristige Trend kippt gerade nach unten.', condition: `Neu prüfen, wenn der Kurs wieder deutlich über ${fmt(s200)} liegt.` };
@@ -104,6 +104,7 @@ RULESETS.A = {
     if (timingOk < need) { base.plan = { ...plan, preview: true }; return { ...base, signal: 'abwarten', reason: 'Die Aktie steigt, aber der günstige Moment zum Einstieg fehlt noch.', condition: 'Kaufsignal, wenn ' + missing.join(need === 3 ? ' und ' : ' oder ') + '.' }; }
     if (plan.shares <= 0) return { ...base, signal: 'abwarten', reason: 'Kaufsignal da, aber der erlaubte Verlust reicht nicht einmal für die Gebühren.', condition: 'Unter „Regeln“ den erlaubten Verlust pro Trade erhöhen.' };
     if (plan.crvNet < S.minCrv) return { ...base, signal: 'abwarten', reason: `Kaufsignal da, aber nach Gebühren lohnt es sich nicht: Der mögliche Gewinn ist nur ${fmtNum(plan.crvNet, 1)}-mal so groß wie der mögliche Verlust.`, condition: `Lohnt sich erst mit größerem Einsatz oder höherem erlaubten Verlust (unter „Regeln“, nötig: ${fmtNum(S.minCrv, 1)}-mal).` };
+    if (S.marketFilter !== false && S.marketUp === false) return { ...base, signal: 'abwarten', reason: 'Die Aktie passt, aber der Gesamtmarkt (DAX) fällt gerade. In solchen Phasen kauft die Regel nicht.', condition: 'Kaufsignal, sobald der DAX wieder über seinem 200-Tage-Durchschnitt liegt.' };
     return { ...base, signal: 'kaufen', reason: timingOk === 3 ? 'Die Aktie steigt langfristig, ist kurz zurückgefallen und dreht jetzt wieder nach oben.' : `Die Aktie steigt langfristig, ${timingOk} von 3 Einstiegs-Bedingungen sind erfüllt.`, condition: `Kaufen, sobald der Kurs ${fmt(plan.entry)} erreicht (morgen, bei Trade Republic als Stop-Order).` };
   },
 };
@@ -152,6 +153,15 @@ function computeDepot(trades, priceOf, sellFee = 1) {
   return { open, value, cost, unreal, realized, fees, closed: Object.values(pos).filter(p => p.qty === 0) };
 }
 
+// Gesamtmarkt: steigt der Index (Kurs über 200-Tage-Durchschnitt)? Liefert eine Funktion Datum -> true/false/null
+function marketTrend(M) {
+  if (!M || !M.c || M.c.length < 200) return () => null;
+  const s200 = sma(M.c, 200); const map = {};
+  M.d.forEach((d, i) => { if (s200[i] != null) map[d] = M.c[i] > s200[i]; });
+  const dates = M.d;
+  return d => { if (d in map) return map[d]; let lo = 0, hi = dates.length - 1, best = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (dates[m] <= d) { best = m; lo = m + 1; } else hi = m - 1; } return best >= 0 && dates[best] in map ? map[dates[best]] : null; };
+}
+
 // ---------- Papier-Modus: Regel ohne dich mittraden lassen ----------
 // Spielt die Regel Tag für Tag ab startDate durch. Bei "kaufen" wird am nächsten Tag gekauft, wenn der Kurs den Kaufkurs erreicht
 // (sonst verfällt das Signal nach 3 Tagen). Verkauft wird an Notbremse oder Ziel, spätestens nach 20 Handelstagen.
@@ -185,7 +195,8 @@ function simulatePaper(H, S, startDate, opts = {}) {
     }
     if (d < startDate || open || pending) continue;
     const slice = { d: H.d.slice(0, i + 1), o: H.o.slice(0, i + 1), h: H.h.slice(0, i + 1), l: H.l.slice(0, i + 1), c: H.c.slice(0, i + 1), v: H.v.slice(0, i + 1) };
-    const ev = rs.evaluate(slice, S2);
+    const mUp = opts.market ? opts.market(d) : undefined;
+    const ev = rs.evaluate(slice, mUp === undefined ? S2 : { ...S2, marketUp: mUp });
     if (ev.signal === 'kaufen' && ev.plan && ev.plan.shares > 0) pending = { signalDate: d, entry: ev.plan.entry, stop: ev.plan.stop, target: ev.plan.target, shares: ev.plan.shares, waited: 0 };
   }
   const last = H.c[H.c.length - 1];
@@ -201,49 +212,16 @@ function paperSummary(all) {
   return { closed: closed.length, won, lost: closed.length - won, hitRate: closed.length ? won / closed.length * 100 : null, sum: r2(sum), openPl: r2(openPl), open: all.filter(t => t.status === 'offen').length, waiting: all.filter(t => t.status === 'wartet').length };
 }
 
-// ---------- Demo-Kurse (erfunden, deterministisch, wachsen täglich) ----------
-function hashStr(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
-function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function gauss(rnd) { let u = 0, v = 0; while (u === 0) u = rnd(); while (v === 0) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+// ---------- Datum ----------
 function isoDate(d) { return d.toISOString().slice(0, 10); }
+// Letzter Handelstag, dessen Schlusskurs vorliegt (Daten eines Tages gelten ab 18 Uhr Berliner Zeit)
 function lastTradingDay(now) {
-  // Berliner Zeit grob: Daten des Tages gelten ab 18 Uhr
   const berlin = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
   const d = new Date(Date.UTC(berlin.getFullYear(), berlin.getMonth(), berlin.getDate()));
   if (berlin.getHours() < 18) d.setUTCDate(d.getUTCDate() - 1);
   while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() - 1);
   return d;
 }
-function demoHistory(symbol, params, until) {
-  const p = Object.assign({ start: 100, drift: 0.0005, vol: 0.016, cyc: 0.0025, period: 45 }, params || {});
-  const rnd = mulberry32(hashStr(symbol));
-  const phase = rnd() * Math.PI * 2;
-  const H = { d: [], o: [], h: [], l: [], c: [], v: [] };
-  const d = new Date(Date.UTC(2025, 4, 5)); let c = p.start, t = 0;
-  while (d <= until) {
-    const wd = d.getUTCDay();
-    if (wd !== 0 && wd !== 6) {
-      const mu = p.drift + p.cyc * Math.sin(2 * Math.PI * t / p.period + phase);
-      const z = gauss(rnd);
-      const o = c * (1 + gauss(rnd) * p.vol * 0.25);
-      const nc = Math.max(0.5, c * Math.exp(mu + p.vol * z));
-      const hi = Math.max(o, nc) * (1 + Math.abs(gauss(rnd)) * p.vol * 0.45);
-      const lo = Math.min(o, nc) * (1 - Math.abs(gauss(rnd)) * p.vol * 0.45);
-      H.d.push(isoDate(d)); H.o.push(r2(o)); H.h.push(r2(hi)); H.l.push(r2(lo)); H.c.push(r2(nc)); H.v.push(Math.round(1e6 * (0.6 + rnd())));
-      c = nc; t++;
-    }
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return H;
-}
-const DEMO_STOCKS = [
-  { symbol: 'SAP.DE', name: 'SAP', demo: { start: 175, drift: 0.0011, vol: 0.017, cyc: 0.0030, period: 50 } },
-  { symbol: 'SIE.DE', name: 'Siemens', demo: { start: 160, drift: 0.0007, vol: 0.015, cyc: 0.0028, period: 38 } },
-  { symbol: 'ALV.DE', name: 'Allianz', demo: { start: 280, drift: 0.0006, vol: 0.011, cyc: 0.0022, period: 42 } },
-  { symbol: 'IFX.DE', name: 'Infineon', demo: { start: 32, drift: 0.0001, vol: 0.024, cyc: 0.0035, period: 55 } },
-  { symbol: 'DTE.DE', name: 'Deutsche Telekom', demo: { start: 27, drift: 0.0004, vol: 0.010, cyc: 0.0020, period: 35 } },
-  { symbol: 'BAS.DE', name: 'BASF', demo: { start: 48, drift: -0.0006, vol: 0.016, cyc: 0.0025, period: 40 } },
-];
 
 // ---------- CSV-Import (Yahoo, Stooq, Onvista-ähnlich) ----------
 function parseNum(s, deComma) { if (s == null) return NaN; s = String(s).trim().replace(/"/g, ''); if (deComma) return parseFloat(s.replace(/\./g, '').replace(',', '.')); if (/^-?\d{1,3}(\.\d{3})*,\d+$/.test(s)) s = s.replace(/\./g, '').replace(',', '.'); else if (/^-?\d+,\d+$/.test(s)) s = s.replace(',', '.'); return parseFloat(s); }
@@ -272,11 +250,15 @@ function parseCsv(text) {
 
 // ---------- Formatierung ----------
 const nf2 = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-function fmt(x) { return x == null || !isFinite(x) ? '–' : nf2.format(x) + ' €'; }
+// Währung für die Anzeige (Trade Republic handelt in Euro; bei anderen Börsen wird die Währung angezeigt)
+let CUR_SYMBOL = '€';
+const CURRENCY_SIGNS = { EUR: '€', USD: '$', GBP: '£', CHF: 'CHF', GBp: 'GBp' };
+function withCurrency(cur, fn) { const old = CUR_SYMBOL; CUR_SYMBOL = CURRENCY_SIGNS[cur] || cur || '€'; try { return fn(); } finally { CUR_SYMBOL = old; } }
+function fmt(x) { return x == null || !isFinite(x) ? '–' : nf2.format(x) + ' ' + CUR_SYMBOL; }
 function fmtNum(x, d = 2) { return x == null || !isFinite(x) ? '–' : new Intl.NumberFormat('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d }).format(x); }
 function fmtPct(x) { return x == null || !isFinite(x) ? '–' : (x > 0 ? '+' : '') + fmtNum(x, 1) + ' %'; }
 function fmtSigned(x) { return x == null || !isFinite(x) ? '–' : (x > 0 ? '+' : '') + fmt(x); }
 function fmtQty(x) { return x == null || !isFinite(x) ? '–' : new Intl.NumberFormat('de-DE', { maximumFractionDigits: 6 }).format(x); }
 function fmtDate(s) { if (!s) return '–'; const [y, m, d] = s.split('-'); return `${d}.${m}.${y}`; }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { r2, sma, rsi, atr, indicators, sizePlan, RULESETS, rateHolding, computeDepot, simulatePaper, paperSummary, parseCsv, lastTradingDay, isoDate, fmt, fmtNum, fmtPct, fmtSigned, fmtQty, fmtDate };
+if (typeof module !== 'undefined' && module.exports) module.exports = { r2, sma, rsi, atr, indicators, sizePlan, RULESETS, rateHolding, computeDepot, simulatePaper, paperSummary, parseCsv, lastTradingDay, isoDate, marketTrend, withCurrency, fmt, fmtNum, fmtPct, fmtSigned, fmtQty, fmtDate };

@@ -40,6 +40,23 @@ async function fetchYahoo(symbol) {
   throw lastErr;
 }
 
+// ISIN oder Name -> Yahoo-Kürzel. Bevorzugt Xetra (.DE), dann Frankfurt (.F), weil Trade Republic in Euro handelt.
+async function resolve(query, depth = 0) {
+  const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=10&newsCount=0&lang=de-DE&region=DE`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  const j = await res.json();
+  const qs = (j.quotes || []).filter(q => q.symbol && ['EQUITY', 'ETF'].includes(q.quoteType));
+  if (!qs.length) throw new Error('nichts gefunden');
+  const rank = q => q.symbol.endsWith('.DE') ? 0 : q.symbol.endsWith('.F') ? 1 : /^[A-Z.-]+$/.test(q.symbol) && !q.symbol.includes('.') ? 2 : 3;
+  qs.sort((a, b) => rank(a) - rank(b));
+  let best = qs[0];
+  // ISIN-Suche liefert oft nur die Heimatbörse (z. B. NASDAQ). Dann per Name nach einer Euro-Börse suchen.
+  if (rank(best) > 1 && depth === 0) {
+    try { const alt = await resolve(best.longname || best.shortname || best.symbol, 1); if (alt.symbol.endsWith('.DE') || alt.symbol.endsWith('.F')) return { ...alt, name: best.shortname || best.longname || alt.name }; } catch (e) { }
+  }
+  return { symbol: best.symbol, name: best.shortname || best.longname || best.symbol, exchange: best.exchDisp || '' };
+}
+
 async function push(title, msg, prio = 'default') {
   const topic = process.env.NTFY_TOPIC; if (!topic) { console.log('(kein NTFY_TOPIC, Push übersprungen)'); return; }
   const res = await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}`, { method: 'POST', body: msg, headers: { Title: title, Priority: prio, Tags: 'chart_with_upwards_trend', Click: process.env.APP_URL || '' } });
@@ -48,9 +65,23 @@ async function push(title, msg, prio = 'default') {
 
 (async () => {
   const signals = {}, errors = [], lines = [], hits = [];
+  // Neue Einträge per ISIN/Name auflösen
+  const resolved = rd('data/resolved.json', {});
+  for (const st of cfg.stocks || []) {
+    if (st.symbol || !st.query) continue;
+    if (resolved[st.query]?.symbol) { st.symbol = resolved[st.query].symbol; continue; }
+    try { const r = await resolve(st.query); resolved[st.query] = r; st.symbol = r.symbol; if (!st.name) st.name = r.name; }
+    catch (e) { resolved[st.query] = { error: 'Nicht gefunden. Prüfe die ISIN oder den Namen.' }; errors.push(`${st.query}: nicht gefunden`); }
+  }
+  wr('data/resolved.json', resolved);
+  // Gesamtmarkt (DAX) für den Marktfilter
+  let marketUp;
+  try { const { H } = await fetchYahoo('^GDAXI'); wr('data/prices/_GDAXI.json', { symbol: '^GDAXI', name: 'DAX', currency: 'EUR', updated: new Date().toISOString(), hist: H }); marketUp = E.marketTrend(H)(H.d[H.d.length - 1]); }
+  catch (e) { errors.push('DAX: ' + String(e.message || e).slice(0, 80)); }
+  S.marketUp = marketUp ?? undefined;
   const histBySym = {};
   let lastDate = '';
-  const symbols = [...new Set([...(cfg.stocks || []).map(s => s.symbol), ...(cfg.alerts || []).map(a => a.symbol)])];
+  const symbols = [...new Set([...(cfg.stocks || []).map(s => s.symbol), ...(cfg.alerts || []).map(a => a.symbol)].filter(Boolean))];
   for (const symbol of symbols) {
     const meta = (cfg.stocks || []).find(s => s.symbol === symbol) || { symbol, name: symbol };
     try {
@@ -58,7 +89,7 @@ async function push(title, msg, prio = 'default') {
       if (H.c.length < 2) throw new Error('zu wenige Kurse');
       histBySym[symbol] = H; if (H.d[H.d.length - 1] > lastDate) lastDate = H.d[H.d.length - 1];
       wr(`data/prices/${safeId(symbol)}.json`, { symbol, name: meta.name || name, currency, updated: new Date().toISOString(), hist: H });
-      const ev = (E.RULESETS[S.ruleset] || E.RULESETS.A).evaluate(H, S);
+      const ev = E.withCurrency(currency, () => (E.RULESETS[S.ruleset] || E.RULESETS.A).evaluate(H, S));
       signals[symbol] = { signal: ev.signal, date: H.d[H.d.length - 1], reason: ev.reason, plan: ev.plan && !ev.plan.preview ? { entry: ev.plan.entry, stop: ev.plan.stop, target: ev.plan.target } : null };
       const was = prev.signals?.[symbol]?.signal;
       if ((cfg.stocks || []).some(s => s.symbol === symbol)) {
@@ -78,7 +109,7 @@ async function push(title, msg, prio = 'default') {
     else if (a.target && H.h[i] >= a.target) hits.push(`${name}: Ziel ${E.fmtNum(a.target)} erreicht (Hoch ${E.fmtNum(H.h[i])})`);
   }
   wr('data/signals.json', { date: lastDate, signals });
-  wr('data/meta.json', { date: lastDate, ranAt: new Date().toISOString(), symbols: symbols.map(s => ({ symbol: s, id: safeId(s) })), errors, changes: [...hits, ...lines] });
+  wr('data/meta.json', { date: lastDate, marketUp: marketUp ?? null, ranAt: new Date().toISOString(), symbols: symbols.map(s => ({ symbol: s, id: safeId(s) })), errors, changes: [...hits, ...lines] });
   const body = [...hits, ...lines, ...(errors.length ? ['Fehler: ' + errors.join('; ')] : [])].join('\n');
   console.log(`Kurse vom ${lastDate}, ${symbols.length} Aktien.\n` + (body || 'Keine Änderungen.'));
   if (cfg.testPush) await push('Swing-Depot ist eingerichtet', `Kurse vom ${E.fmtDate(lastDate)} geladen, ${symbols.length} Aktien. Ab jetzt kommen hier Kaufsignale und Alarme.`);
