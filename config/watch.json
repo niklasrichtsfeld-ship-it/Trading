@@ -25,10 +25,6 @@
       "name": "Richemont"
     },
     {
-      "query": "AT0000937503",
-      "name": "Voestalpin"
-    },
-    {
       "symbol": "SAP.DE",
       "name": "SAP"
     },
@@ -41,15 +37,19 @@
       "name": "Siemens"
     },
     {
-      "query": "CH0012255144",
+      "symbol": "VAS.F",
+      "name": "Voestalpin"
+    },
+    {
+      "symbol": "UHRN.SW",
       "name": "Swatch Group"
     },
     {
-      "query": "US9311421039",
+      "symbol": "WMT.DE",
       "name": "Walmart"
     },
     {
-      "query": "AT0000746409",
+      "symbol": "OEWA.DE",
       "name": "Verbund"
     }
   ],
