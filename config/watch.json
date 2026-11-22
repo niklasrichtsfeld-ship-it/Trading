@@ -29,7 +29,7 @@
     "minCrv": 1.5,
     "fractional": true,
     "ruleset": "A",
-    "timingMin": 3,
+    "timingMin": 2,
     "marketFilter": true
   }
 }
