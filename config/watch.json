@@ -1,5 +1,9 @@
 {
-  "stocks": [],
+  "stocks": [
+    {
+      "query": "US0231351067"
+    }
+  ],
   "alerts": [],
   "settings": {
     "stake": 150,
