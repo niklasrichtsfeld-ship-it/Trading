@@ -23,7 +23,7 @@
   ],
   "alerts": [],
   "settings": {
-    "stake": 80,
+    "stake": 100,
     "maxLoss": 5,
     "fee": 1,
     "minCrv": 1.5,
