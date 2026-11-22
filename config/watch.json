@@ -19,6 +19,10 @@
     {
       "query": "AT0000606306",
       "name": "Reiffeisen Bank International"
+    },
+    {
+      "query": "CH0210483332",
+      "name": "Richemont"
     }
   ],
   "alerts": [],
