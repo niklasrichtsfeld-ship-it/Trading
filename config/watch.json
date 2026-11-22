@@ -23,6 +23,10 @@
     {
       "symbol": "CFR.SW",
       "name": "Richemont"
+    },
+    {
+      "query": "Ryanair Houlding",
+      "name": "Ryanair Houlding"
     }
   ],
   "alerts": [],
