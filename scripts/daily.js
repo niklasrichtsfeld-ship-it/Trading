@@ -81,6 +81,7 @@ async function push(title, msg, prio = 'default') {
   wr('data/meta.json', { date: lastDate, ranAt: new Date().toISOString(), symbols: symbols.map(s => ({ symbol: s, id: safeId(s) })), errors, changes: [...hits, ...lines] });
   const body = [...hits, ...lines, ...(errors.length ? ['Fehler: ' + errors.join('; ')] : [])].join('\n');
   console.log(`Kurse vom ${lastDate}, ${symbols.length} Aktien.\n` + (body || 'Keine Änderungen.'));
+  if (cfg.testPush) await push('Swing-Depot ist eingerichtet', `Kurse vom ${E.fmtDate(lastDate)} geladen, ${symbols.length} Aktien. Ab jetzt kommen hier Kaufsignale und Alarme.`);
   if (hits.length) await push('Swing-Depot', hits.join('\n'), 'high');
   else if (errors.length && !lastDate) await push('Swing-Depot: Fehler', 'Kurse konnten nicht geladen werden.');
 })().catch(e => { console.error(e); process.exit(1); });

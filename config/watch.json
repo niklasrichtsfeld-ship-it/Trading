@@ -1,12 +1,39 @@
 {
   "stocks": [
-    { "symbol": "SAP.DE", "name": "SAP" },
-    { "symbol": "SIE.DE", "name": "Siemens" },
-    { "symbol": "ALV.DE", "name": "Allianz" },
-    { "symbol": "IFX.DE", "name": "Infineon" },
-    { "symbol": "DTE.DE", "name": "Deutsche Telekom" },
-    { "symbol": "BAS.DE", "name": "BASF" }
+    {
+      "symbol": "SAP.DE",
+      "name": "SAP"
+    },
+    {
+      "symbol": "SIE.DE",
+      "name": "Siemens"
+    },
+    {
+      "symbol": "ALV.DE",
+      "name": "Allianz"
+    },
+    {
+      "symbol": "IFX.DE",
+      "name": "Infineon"
+    },
+    {
+      "symbol": "DTE.DE",
+      "name": "Deutsche Telekom"
+    },
+    {
+      "symbol": "BAS.DE",
+      "name": "BASF"
+    }
   ],
   "alerts": [],
-  "settings": { "stake": 50, "maxLoss": 5, "fee": 1, "minCrv": 1.5, "fractional": true, "ruleset": "A", "timingMin": 3 }
+  "settings": {
+    "stake": 50,
+    "maxLoss": 5,
+    "fee": 1,
+    "minCrv": 1.5,
+    "fractional": true,
+    "ruleset": "A",
+    "timingMin": 3
+  },
+  "testPush": true
 }
