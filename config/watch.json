@@ -62,6 +62,6 @@
     "fractional": true,
     "ruleset": "A",
     "timingMin": 2,
-    "marketFilter": true
+    "marketFilter": false
   }
 }
